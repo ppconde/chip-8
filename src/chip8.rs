@@ -63,13 +63,12 @@ impl Chip8 {
         // 1. Fetch the next opcode (CHIP-8 opcodes are 2 bytes)
         let op_code = self.fetch_opcode();
 
-        let digit1 = (op_code & 0xF000) >> 12;
-        let digit2 = (op_code & 0x0F00) >> 8;
-        let digit3 = (op_code & 0x00F0) >> 4;
-        let digit4 = op_code & 0x000F;
-        match (digit1, digit2, digit3, digit4) {
-            (0, 0, 0, 0) => return,
-            (0, 0, 0xE, 0) => self.clear_screen(),
+        match op_code {
+            0x0000 => return,
+            0x00E0 => self.clear_screen(),
+            _ => {
+                eprintln!("Unknown opcode: {:#X}", op_code)
+            }
         }
     }
 
