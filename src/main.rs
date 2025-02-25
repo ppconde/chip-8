@@ -3,7 +3,7 @@ mod ram;
 
 use minifb::{Window, WindowOptions};
 
-fn run_emulator() {
+fn main() {
     let mut chip8 = chip8::Chip8::new();
     chip8.load_rom("game.ch8").unwrap();
 
