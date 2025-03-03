@@ -62,10 +62,24 @@ impl Chip8 {
     pub fn run_cycle(&mut self) {
         // 1. Fetch the next opcode (CHIP-8 opcodes are 2 bytes)
         let op_code = self.fetch_opcode();
+        let x = ((op_code >> 8) & 0xF) as usize; //lower 4 bits of first byte
+        let y = ((op_code >> 4) & 0xF) as usize; //higher 4 bits of second byte
+        let n = (op_code & 0xF) as u8; //lower 4 bits of second byte
+        let nnn = (op_code & 0xFFF) as u16; //lower 12 bits of opcode
+        let kk = (op_code & 0xFF) as u8; //lower bits 8 of opcode
 
         match op_code {
-            0x0000 => return,
-            0x00E0 => self.clear_screen(),
+            // CLS
+            0x00E0 => self._00E0(),
+            // RET
+            0x00EE => self._00EE(),
+            // JP addr
+            0x1000 => self._1nnn(nnn),
+            0x2000 => self._2nnn(nnn),
+            0x3000 => self._3xkk(x, kk),
+            0x4000 => self._4xkk(x, kk),
+            0x5000 => self._5xy0(x, y),
+            0x6000 => self._6xkk(x, kk),
             _ => {
                 eprintln!("Unknown opcode: {:#X}", op_code)
             }
@@ -97,7 +111,51 @@ impl Chip8 {
         }
     }
 
-    fn clear_screen(&mut self) {
+    fn _00E0(&mut self) {
         self.screen = [false; SCREEN_SIZE]
+    }
+
+    fn _00EE(&mut self) {
+        if self.sp == 0 {
+            panic!("Stack underflow: Attempted to return with an empty stack");
+        }
+        self.pc = self.stack[self.pc as usize];
+        self.pc -= 1;
+    }
+
+    fn _1nnn(&mut self, nnn: u16) {
+        self.pc = nnn;
+    }
+
+    fn _2nnn(&mut self, nnn: u16) {
+        self.sp += 1;
+        self.stack[self.sp as usize] = self.pc;
+        self.pc = nnn;
+    }
+
+    fn _3xkk(&mut self, x: usize, kk: u8) {
+        if self.v[x] == kk {
+            self.pc += 2;
+        }
+        self.pc += 2;
+    }
+
+    fn _4xkk(&mut self, x: usize, kk: u8) {
+        if self.v[x] != kk {
+            self.pc += 2;
+        }
+        self.pc += 2;
+    }
+
+    fn _5xy0(&mut self, x: usize, y: usize) {
+        if self.v[x] == self.v[y] {
+            self.pc += 2;
+        }
+        self.pc += 2;
+    }
+
+    fn _6xkk(&mut self, x: usize, kk: u8) {
+        self.v[x] = kk;
+        self.pc += 2;
     }
 }
