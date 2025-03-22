@@ -1,4 +1,5 @@
 use crate::ram::Ram;
+use rand::Rng;
 
 const NUM_REGS: usize = 16;
 const STACK_SIZE: usize = 16;
@@ -20,8 +21,8 @@ pub struct Chip8 {
     sp: u8,  // Stack pointer - used to point to the topmost level of the stack
     stack: [u16; STACK_SIZE],
 
-    screen: [bool; SCREEN_SIZE], // Monochrome display
-    keys: [bool; NUM_KEYS],      // Hex keypad state
+    screen: [[u8; SCREEN_WIDTH]; SCREEN_HEIGHT], // Monochrome display
+    keys: [bool; NUM_KEYS],                      // Hex keypad state
 }
 
 impl Chip8 {
@@ -35,7 +36,7 @@ impl Chip8 {
             pc: 0x200,
             sp: 0,
             stack: [0; STACK_SIZE],
-            screen: [false; SCREEN_SIZE],
+            screen: [[0u8; SCREEN_WIDTH]; SCREEN_HEIGHT],
             keys: [false; NUM_KEYS],
         };
 
@@ -80,6 +81,7 @@ impl Chip8 {
             0x4000 => self._4xkk(x, kk),
             0x5000 => self._5xy0(x, y),
             0x6000 => self._6xkk(x, kk),
+            0x7000 => self._7kkk(x, kk),
             _ => {
                 eprintln!("Unknown opcode: {:#X}", op_code)
             }
@@ -156,6 +158,156 @@ impl Chip8 {
 
     fn _6xkk(&mut self, x: usize, kk: u8) {
         self.v[x] = kk;
+        self.pc += 2;
+    }
+
+    fn _7kkk(&mut self, x: usize, kk: u8) {
+        self.v[x] = self.v[x].wrapping_add(kk);
+        self.pc += 2;
+    }
+
+    fn _8xy0(&mut self, x: usize, y: usize) {
+        self.v[x] = self.v[y];
+        self.pc += 2;
+    }
+
+    fn _8xy1(&mut self, x: usize, y: usize) {
+        // Bitwise OR
+        self.v[x] |= self.v[y];
+        self.pc += 2;
+    }
+
+    fn _8xy2(&mut self, x: usize, y: usize) {
+        // Bitwise AND
+        self.v[x] &= self.v[y];
+        self.pc += 2;
+    }
+
+    fn _8xy3(&mut self, x: usize, y: usize) {
+        // Bitwise XOR
+        self.v[x] ^= self.v[y];
+        self.pc += 2;
+    }
+
+    fn _8xy4(&mut self, x: usize, y: usize) {
+        // 8xy4 - ADD Vx, Vy
+        // Set Vx = Vx + Vy, set VF = carry.
+
+        // The values of Vx and Vy are added together. If the result is greater than 8 bits (i.e., > 255,)
+        // VF is set to 1, otherwise 0. Only the lowest 8 bits of the result are kept, and stored in Vx.
+        let (result, carry) = (self.v[x]).overflowing_add(self.v[y]);
+        self.v[x] = result;
+        self.v[0xF] = if carry { 1 } else { 0 };
+        self.pc += 2;
+    }
+
+    fn _8xy5(&mut self, x: usize, y: usize) {
+        // Set Vx = Vx - Vy, set VF = NOT borrow.
+
+        // If Vx > Vy, then VF is set to 1, otherwise 0. Then Vy is subtracted from Vx, and the results stored in Vx.
+        self.v[0xF] = if self.v[x] > self.v[y] { 1 } else { 0 };
+        self.v[x] = self.v[x].wrapping_sub(self.v[y]);
+        self.pc += 2;
+    }
+
+    fn _8xy6(&mut self, x: usize, y: usize) {
+        // Set Vx = Vx SHR 1.
+
+        // If the least-significant bit of Vx is 1, then VF is set to 1, otherwise 0. Then Vx is divided by 2.
+        // First check and save the LSB of Vx to VF
+        self.v[0xF] = self.v[x] & 0x1;
+        // Then shift Vx right (which is the same as dividing by 2)
+        self.v[x] >>= 1;
+        self.pc += 2;
+    }
+
+    fn _8xy7(&mut self, x: usize, y: usize) {
+        // Set Vx = Vy - Vx, set VF = NOT borrow.
+
+        // If Vy > Vx, then VF is set to 1, otherwise 0. Then Vx is subtracted from Vy, and the results stored in Vx.
+        self.v[0xF] = if self.v[y] > self.v[x] { 1 } else { 0 };
+        self.v[x] = self.v[y].wrapping_sub(self.v[x]);
+        self.pc += 2;
+    }
+
+    fn _8xy_e(&mut self, x: usize) {
+        // Set Vx = Vx SHL 1.
+
+        // If the most-significant bit of Vx is 1, then VF is set to 1, otherwise to 0. Then Vx is multiplied by 2.
+        self.v[0xF] = if self.v[x] & 0x80 == 0x80 { 1 } else { 0 };
+        self.v[x] <<= 1;
+        self.pc += 2;
+    }
+
+    fn _9xy0(&mut self, x: usize, y: usize) {
+        // Skip next instruction if Vx != Vy.
+
+        // The values of Vx and Vy are compared, and if they are not equal, the program counter is increased by 2.
+        if self.v[x] != self.v[y] {
+            self.pc += 2
+        }
+        self.pc += 2;
+    }
+
+    fn _annn(&mut self, nnn: u16) {
+        // Set I = nnn.
+
+        // The value of register I is set to nnn.
+        self.i = nnn;
+        self.pc += 2;
+    }
+
+    fn _bnnn(&mut self, nnn: u16) {
+        // Jump to location nnn + V0.
+
+        // The program counter is set to nnn plus the value of V0.
+        self.pc = nnn + self.v[0] as u16;
+    }
+
+    fn _cxkk(&mut self, x: usize, kk: u8) {
+        // Set Vx = random byte AND kk.
+
+        // The interpreter generates a random number from 0 to 255, which is then ANDed with the value kk.
+        // The results are stored in Vx. See instruction 8xy2 for more information on AND.
+
+        self.v[x] = rand::rng().random_range(0..=255) & kk;
+        self.pc += 2;
+    }
+
+    fn _dxyn(&mut self, x: usize, y: usize, n: u8) {
+        // Display n-byte sprite starting at memory location I at (Vx, Vy), set VF = collision.
+        let x_coord = self.v[x] as usize;
+        let y_coord = self.v[y] as usize;
+        self.v[0xF] = 0; // Reset collision flag
+
+        for row in 0..n as usize {
+            // Get one row of sprite data (8 pixels wide)
+            let sprite_data = self.memory.read_byte(self.i + row as u16);
+
+            // The y-coordinate wraps around the screen
+            let y_pos = (y_coord + row) % SCREEN_HEIGHT;
+
+            // Process each bit in the sprite row (8 bits = 8 pixels wide)
+            for col in 0..8 {
+                // Only draw if the sprite bit is 1 (MSB first, so 7-col)
+                let sprite_bit = (sprite_data >> (7 - col)) & 0x1;
+
+                if sprite_bit != 0 {
+                    // The x-coordinate wraps around the screen
+                    let x_pos = (x_coord + col) % SCREEN_WIDTH;
+
+                    // Toggle the pixel and check for collision
+                    if self.screen[y_pos][x_pos] == 1 {
+                        // Collision detected - a pixel was turned off
+                        self.v[0xF] = 1;
+                    }
+
+                    // XOR the existing pixel with the sprite bit
+                    self.screen[y_pos][x_pos] ^= 1;
+                }
+            }
+        }
+
         self.pc += 2;
     }
 }

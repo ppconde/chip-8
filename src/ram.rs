@@ -1,11 +1,14 @@
+const MEM_SIZE: usize = 4096;
 pub struct Ram {
-    memory: [u8; 4096],
+    memory: [u8; MEM_SIZE],
 }
 
 // Needs manual default implementation
 impl Default for Ram {
     fn default() -> Self {
-        Self { memory: [0; 4096] } // Explicitly initialize the array
+        Self {
+            memory: [0; MEM_SIZE],
+        } // Explicitly initialize the array
     }
 }
 
