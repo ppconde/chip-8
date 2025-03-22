@@ -114,7 +114,7 @@ impl Chip8 {
     }
 
     fn _00E0(&mut self) {
-        self.screen = [false; SCREEN_SIZE]
+        self.screen = [[0u8; SCREEN_WIDTH]; SCREEN_HEIGHT]
     }
 
     fn _00EE(&mut self) {
