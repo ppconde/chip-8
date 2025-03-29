@@ -3,8 +3,8 @@ use rand::Rng;
 
 const NUM_REGS: usize = 16;
 const STACK_SIZE: usize = 16;
-const SCREEN_WIDTH: usize = 64;
-const SCREEN_HEIGHT: usize = 32;
+pub const SCREEN_WIDTH: usize = 64;
+pub const SCREEN_HEIGHT: usize = 32;
 const SCREEN_SIZE: usize = SCREEN_HEIGHT * SCREEN_WIDTH;
 const NUM_KEYS: usize = 16;
 const START_ADDR: u16 = 0x200;
@@ -69,7 +69,7 @@ impl Chip8 {
         let nnn = (op_code & 0xFFF) as u16; //lower 12 bits of opcode
         let kk = (op_code & 0xFF) as u8; //lower bits 8 of opcode
 
-        match op_code {
+        match op_code & 0xF000 {
             // CLS
             0x00E0 => self._00E0(),
             // RET
@@ -82,6 +82,26 @@ impl Chip8 {
             0x5000 => self._5xy0(x, y),
             0x6000 => self._6xkk(x, kk),
             0x7000 => self._7kkk(x, kk),
+            0x8000 => match op_code & 0xF {
+                0x0000 => self._8xy0(x, y),
+                0x0001 => self._8xy1(x, y),
+                0x0002 => self._8xy2(x, y),
+                0x0003 => self._8xy3(x, y),
+                0x0004 => self._8xy4(x, y),
+                0x0005 => self._8xy5(x, y),
+                0x0006 => self._8xy6(x, y),
+                0x0007 => self._8xy7(x, y),
+                0x000E => self._8xy_e(x),
+                _ => self.no_op_code(),
+            },
+            0x9000 => self._9xy0(x, y),
+            0xA000 => self._annn(nnn),
+            0xB000 => self._bnnn(nnn),
+            0xC000 => self._cxkk(x, kk),
+            0xD000 => self._dxyn(x, y, n),
+            // 0xE000 => match op_code & 0xF {
+            //     0x9E => self._
+            // }
             _ => {
                 eprintln!("Unknown opcode: {:#X}", op_code)
             }
@@ -113,8 +133,13 @@ impl Chip8 {
         }
     }
 
+    fn no_op_code(&mut self) {
+        self.pc +=2;
+    }
+
     fn _00E0(&mut self) {
         self.screen = [[0u8; SCREEN_WIDTH]; SCREEN_HEIGHT]
+        self.pc +=1;
     }
 
     fn _00EE(&mut self) {
@@ -309,5 +334,9 @@ impl Chip8 {
         }
 
         self.pc += 2;
+    }
+
+    fn _ex9e(&mut self, x:usize) {
+        
     }
 }
