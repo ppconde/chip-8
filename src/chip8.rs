@@ -134,12 +134,12 @@ impl Chip8 {
     }
 
     fn no_op_code(&mut self) {
-        self.pc +=2;
+        self.pc += 2;
     }
 
     fn _00E0(&mut self) {
-        self.screen = [[0u8; SCREEN_WIDTH]; SCREEN_HEIGHT]
-        self.pc +=1;
+        self.screen = [[0u8; SCREEN_WIDTH]; SCREEN_HEIGHT];
+        self.pc += 2;
     }
 
     fn _00EE(&mut self) {
@@ -336,7 +336,5 @@ impl Chip8 {
         self.pc += 2;
     }
 
-    fn _ex9e(&mut self, x:usize) {
-        
-    }
+    fn _ex9e(&mut self, x: usize) {}
 }
