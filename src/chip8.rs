@@ -336,5 +336,78 @@ impl Chip8 {
         self.pc += 2;
     }
 
-    fn _ex9e(&mut self, x: usize) {}
+    fn _ex9e(&mut self, x: usize) {
+        // Skip next instruction if key with the value of Vx is pressed.
+        // Checks the keyboard, and if the key corresponding to the value of Vx is currently in the down position, PC is increased by 2.
+        if self.keys[self.v[x] as usize] == true {
+            // Unpress key
+            self.keys[self.v[x] as usize] = false;
+            self.pc += 2;
+        }
+        self.pc += 2;
+    }
+
+    fn _exa1(&mut self, x: usize) {
+        // Skip next instruction if key with the value of Vx is not pressed.
+        // Checks the keyboard, and if the key corresponding to the value of Vx is currently in the up position, PC is increased by 2.
+        if self.keys[self.v[x] as usize] == false {
+            self.pc += 2;
+        }
+        self.pc += 2;
+    }
+
+    fn _fx07(&mut self, x: usize) {
+        // Set Vx = delay timer value.
+        // The value of DT is placed into Vx.
+        self.v[x] = self.delay_timer;
+        self.pc += 2;
+    }
+
+    fn _fx0a(&mut self, x: usize) {
+        // Wait for a key press, store the value of the key in Vx.
+        // All execution stops until a key is pressed, then the value of that key is stored in Vx.
+        if let Some(key) = self.keys.iter().position(|&key| key) {
+            self.keys[key] = false;
+            self.v[x] = key as u8;
+            self.pc += 2;
+        }
+    }
+
+    fn _fx15(&mut self, x: usize) {
+        // Set delay timer = Vx.
+        // DT is set equal to the value of Vx.
+        self.delay_timer = self.v[x];
+        self.pc += 2;
+    }
+
+    fn _fx18(&mut self, x: usize) {
+        // Set sound timer = Vx.
+        // ST is set equal to the value of Vx.
+
+        self.sound_timer = self.v[x];
+        self.pc += 2;
+    }
+
+    fn _fx1e(&mut self, x: usize) {
+        // Set I = I + Vx.
+        // The values of I and Vx are added, and the results are stored in I.
+        self.i = self.i.wrapping_add(self.v[x] as u16);
+        self.pc += 2;
+    }
+
+    fn _fx29(&mut self, x: usize) {
+        // Set I = location of sprite for digit Vx.
+        // The value of I is set to the location for the hexadecimal sprite corresponding to the value of Vx.
+        // See section 2.4, Display, for more information on the Chip-8 hexadecimal font.
+
+        self.i = 0x050 + (self.v[x] as u16 * 5);
+        self.pc += 2;
+    }
+
+    fn _fx33(&mut self, x: usize) {
+        // Store BCD representation of Vx in memory locations I, I+1, and I+2.
+        // The interpreter takes the decimal value of Vx, and places the hundreds digit in memory at location in I,
+        // the tens digit at location I+1, and the ones digit at location I+2.
+        // self.memory
+    }
 }
