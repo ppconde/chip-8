@@ -71,9 +71,9 @@ impl Chip8 {
 
         match op_code & 0xF000 {
             // CLS
-            0x00E0 => self._00E0(),
+            0x00E0 => self._00e0(),
             // RET
-            0x00EE => self._00EE(),
+            0x00EE => self._00ee(),
             // JP addr
             0x1000 => self._1nnn(nnn),
             0x2000 => self._2nnn(nnn),
@@ -149,17 +149,17 @@ impl Chip8 {
         self.pc += 2;
     }
 
-    fn _00E0(&mut self) {
+    fn _00e0(&mut self) {
         self.screen = [[0u8; SCREEN_WIDTH]; SCREEN_HEIGHT];
         self.pc += 2;
     }
 
-    fn _00EE(&mut self) {
+    fn _00ee(&mut self) {
         if self.sp == 0 {
             panic!("Stack underflow: Attempted to return with an empty stack");
         }
-        self.pc = self.stack[self.pc as usize];
-        self.pc -= 1;
+        self.pc = self.stack[self.sp as usize];
+        self.sp -= 1;
     }
 
     fn _1nnn(&mut self, nnn: u16) {
@@ -281,9 +281,10 @@ impl Chip8 {
 
         // The values of Vx and Vy are compared, and if they are not equal, the program counter is increased by 2.
         if self.v[x] != self.v[y] {
-            self.pc += 2
+            self.pc += 4; // Skip next instruction
+        } else {
+            self.pc += 2; // Normal next instruction
         }
-        self.pc += 2;
     }
 
     fn _annn(&mut self, nnn: u16) {
@@ -421,7 +422,7 @@ impl Chip8 {
         // The interpreter takes the decimal value of Vx, and places the hundreds digit in memory at location in I,
         // the tens digit at location I+1, and the ones digit at location I+2.
 
-        self.memory.write_byte(self.i, self.v[x] % 100);
+        self.memory.write_byte(self.i, self.v[x] / 100);
         self.memory.write_byte(self.i + 1, (self.v[x] % 100) / 10);
         self.memory.write_byte(self.i + 2, self.v[x] % 10);
 
