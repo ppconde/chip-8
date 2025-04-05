@@ -99,12 +99,24 @@ impl Chip8 {
             0xB000 => self._bnnn(nnn),
             0xC000 => self._cxkk(x, kk),
             0xD000 => self._dxyn(x, y, n),
-            // 0xE000 => match op_code & 0xF {
-            //     0x9E => self._
-            // }
-            _ => {
-                eprintln!("Unknown opcode: {:#X}", op_code)
-            }
+            0xE000 => match op_code & 0xFF {
+                0x9E => self._ex9e(x),
+                0xA1 => self._exa1(x),
+                _ => self.no_op_code(),
+            },
+            0xF000 => match op_code & 0xFF {
+                0x0007 => self._fx07(x),
+                0x000A => self._fx0a(x),
+                0x0015 => self._fx15(x),
+                0x0018 => self._fx18(x),
+                0x001E => self._fx1e(x),
+                0x0029 => self._fx29(x),
+                0x0033 => self._fx33(x),
+                0x0055 => self._fx55(x),
+                0x0065 => self._fx65(x),
+                _ => self.no_op_code(),
+            },
+            _ => self.no_op_code(),
         }
     }
 
