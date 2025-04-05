@@ -168,6 +168,11 @@ impl Chip8 {
     }
 
     fn _00ee(&mut self) {
+        // Return from a subroutine.
+
+        // The interpreter sets the program counter to the address at the top of the stack,
+        // then subtracts 1 from the stack pointer.
+
         if self.sp == 0 {
             panic!("Stack underflow: Attempted to return with an empty stack");
         }
@@ -187,23 +192,26 @@ impl Chip8 {
 
     fn _3xkk(&mut self, x: usize, kk: u8) {
         if self.v[x] == kk {
+            self.pc += 4;
+        } else {
             self.pc += 2;
         }
-        self.pc += 2;
     }
 
     fn _4xkk(&mut self, x: usize, kk: u8) {
         if self.v[x] != kk {
+            self.pc += 4;
+        } else {
             self.pc += 2;
         }
-        self.pc += 2;
     }
 
     fn _5xy0(&mut self, x: usize, y: usize) {
         if self.v[x] == self.v[y] {
+            self.pc += 4;
+        } else {
             self.pc += 2;
         }
-        self.pc += 2;
     }
 
     fn _6xkk(&mut self, x: usize, kk: u8) {
