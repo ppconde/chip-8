@@ -6,7 +6,7 @@ use std::time::{Duration, Instant};
 
 fn main() {
     let mut chip8 = chip8::Chip8::new();
-    chip8.load_rom("roms/pong2.ch8").unwrap();
+    chip8.load_rom("roms/glitchGhost.ch8").unwrap();
     let buffer = vec![0; 64 * 32]; // 1D buffer to store pixel colors
 
     let mut window = match Window::new(
