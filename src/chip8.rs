@@ -408,6 +408,33 @@ impl Chip8 {
         // Store BCD representation of Vx in memory locations I, I+1, and I+2.
         // The interpreter takes the decimal value of Vx, and places the hundreds digit in memory at location in I,
         // the tens digit at location I+1, and the ones digit at location I+2.
-        // self.memory
+
+        self.memory.write_byte(self.i, self.v[x] % 100);
+        self.memory.write_byte(self.i + 1, (self.v[x] % 100) / 10);
+        self.memory.write_byte(self.i + 2, self.v[x] % 10);
+
+        self.pc += 2;
+    }
+
+    fn _fx55(&mut self, x: usize) {
+        // Store registers V0 through Vx in memory starting at location I.
+        // The interpreter copies the values of registers V0 through Vx into memory, starting at the address in I.
+
+        for index in 0..=x {
+            self.memory.write_byte(self.i + index as u16, self.v[index]);
+        }
+
+        self.pc += 2;
+    }
+
+    fn _fx65(&mut self, x: usize) {
+        // Read registers V0 through Vx from memory starting at location I.
+        // The interpreter reads values from memory starting at location I into registers V0 through Vx.
+
+        for index in 0..=x {
+            self.v[index] = self.memory.read_byte(self.i + index as u16)
+        }
+
+        self.pc += 2;
     }
 }
