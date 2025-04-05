@@ -120,6 +120,19 @@ impl Chip8 {
         }
     }
 
+    /**
+     * Transform the screen 2D array into a single vector of colored pixels - used with minifb window
+     */
+    pub fn screen_buffer(&self) -> Vec<u32> {
+        self.screen
+            .iter()
+            .flat_map(|row| {
+                row.iter()
+                    .map(|&pixel| if pixel == 1 { 0x00FF00 } else { 0x000000 })
+            })
+            .collect()
+    }
+
     fn fetch_opcode(&self) -> u16 {
         let byte1 = self.memory.read_byte(self.pc) as u16;
         let byte2 = self.memory.read_byte(self.pc + 1) as u16;

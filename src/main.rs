@@ -2,7 +2,6 @@ pub mod chip8;
 mod ram;
 
 use minifb::{Key, Window, WindowOptions};
-use rand::random;
 
 fn main() {
     let mut chip8 = chip8::Chip8::new();
@@ -31,7 +30,10 @@ fn main() {
     };
 
     while window.is_open() && !window.is_key_down(Key::Escape) {
-        let buffer: Vec<u32> = (0..64 * 32).map(|_| random::<u32>()).collect();
+        // Run one cycle of the CHIP 8 interpreter
+        chip8.run_cycle();
+
+        let buffer = chip8.screen_buffer();
         window.update_with_buffer(&buffer, 64, 32).unwrap();
     }
 }
