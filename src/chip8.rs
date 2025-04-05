@@ -1,5 +1,5 @@
 use crate::ram::Ram;
-use rand::Rng;
+use rand::random_range;
 
 const NUM_REGS: usize = 16;
 const STACK_SIZE: usize = 16;
@@ -89,7 +89,7 @@ impl Chip8 {
                 0x0003 => self._8xy3(x, y),
                 0x0004 => self._8xy4(x, y),
                 0x0005 => self._8xy5(x, y),
-                0x0006 => self._8xy6(x, y),
+                0x0006 => self._8xy6(x),
                 0x0007 => self._8xy7(x, y),
                 0x000E => self._8xy_e(x),
                 _ => self.no_op_code(),
@@ -235,7 +235,7 @@ impl Chip8 {
         self.pc += 2;
     }
 
-    fn _8xy6(&mut self, x: usize, y: usize) {
+    fn _8xy6(&mut self, x: usize) {
         // Set Vx = Vx SHR 1.
 
         // If the least-significant bit of Vx is 1, then VF is set to 1, otherwise 0. Then Vx is divided by 2.
@@ -295,7 +295,7 @@ impl Chip8 {
         // The interpreter generates a random number from 0 to 255, which is then ANDed with the value kk.
         // The results are stored in Vx. See instruction 8xy2 for more information on AND.
 
-        self.v[x] = rand::rng().random_range(0..=255) & kk;
+        self.v[x] = random_range(0..=255) & kk;
         self.pc += 2;
     }
 
