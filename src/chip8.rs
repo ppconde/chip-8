@@ -1,4 +1,8 @@
 use crate::ram::Ram;
+use cpal::{
+    traits::{DeviceTrait, HostTrait},
+    Stream, StreamConfig,
+};
 use rand::random_range;
 
 const NUM_REGS: usize = 16;
@@ -22,7 +26,9 @@ pub struct Chip8 {
     stack: [u16; STACK_SIZE],
 
     screen: [[u8; SCREEN_WIDTH]; SCREEN_HEIGHT], // Monochrome display
-    keys: [bool; NUM_KEYS],                      // Hex keypad state
+    screen_buffer: Vec<u32>,
+    draw_flag: bool,
+    keys: [bool; NUM_KEYS], // Hex keypad state
 }
 
 impl Chip8 {
@@ -37,6 +43,8 @@ impl Chip8 {
             sp: 0,
             stack: [0; STACK_SIZE],
             screen: [[0u8; SCREEN_WIDTH]; SCREEN_HEIGHT],
+            screen_buffer: vec![0; 64 * 32],
+            draw_flag: false,
             keys: [false; NUM_KEYS],
         };
 
@@ -120,17 +128,51 @@ impl Chip8 {
         }
     }
 
-    /**
+    pub fn get_screen_buffer(&self) -> &Vec<u32> {
+        &self.screen_buffer
+    }
+
+    /* *
      * Transform the screen 2D array into a single vector of colored pixels - used with minifb window
      */
-    pub fn screen_buffer(&self) -> Vec<u32> {
-        self.screen
-            .iter()
-            .flat_map(|row| {
-                row.iter()
-                    .map(|&pixel| if pixel == 1 { 0x00FF00 } else { 0x000000 })
-            })
-            .collect()
+    pub fn update_screen_buffer(&mut self) {
+        for row in 0..SCREEN_HEIGHT {
+            for col in 0..SCREEN_WIDTH {
+                let index = row * SCREEN_WIDTH + col;
+                self.screen_buffer[index] = if self.screen[row][col] == 1 {
+                    0x00FF00
+                } else {
+                    0x000000
+                }
+            }
+        }
+    }
+
+    pub fn should_draw(&self) -> bool {
+        self.draw_flag
+    }
+
+    pub fn reset_draw_flag(&mut self) {
+        self.draw_flag = false;
+    }
+
+    // Chip-8 provides 2 timers, a delay timer and a sound timer.
+    // The delay timer is active whenever the delay timer register (DT) is non-zero.
+    // This timer does nothing more than subtract 1 from the value of DT at a rate of 60Hz. When DT reaches 0, it deactivates.
+    // The sound timer is active whenever the sound timer register (ST) is non-zero.
+    // This timer also decrements at a rate of 60Hz, however, as long as ST's value is greater than zero,
+    // the Chip-8 buzzer will sound. When ST reaches zero, the sound timer deactivates.
+    // The sound produced by the Chip-8 interpreter has only one tone.
+
+    pub fn update_timers(&mut self) {
+        if self.delay_timer > 0 {
+            self.delay_timer -= 1;
+        }
+
+        if self.sound_timer > 0 {
+            self.sound_timer -= 1
+            // produce sound buzz
+        }
     }
 
     fn fetch_opcode(&self) -> u16 {
@@ -368,6 +410,8 @@ impl Chip8 {
         }
 
         self.pc += 2;
+
+        self.draw_flag = true;
     }
 
     fn _ex9e(&mut self, x: usize) {
